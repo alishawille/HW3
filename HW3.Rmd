@@ -1,0 +1,465 @@
+---
+title: "HW3"
+author: "Alisha Wille - afw599"
+date: "2025-02-04"
+output: pdf_document
+---
+
+GitHub link:
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+```{r}
+#libraries
+library(tidyverse)
+library(mosaic)
+library(scales)
+library(viridis)
+
+# read datasets
+gasprices <- read.csv("gasprices.csv")
+sclass <- read.csv("sclass.csv")
+nbc <- read.csv("nbc_pilotsurvey.csv")
+ebay <- read.csv("ebay.csv")
+
+```
+
+## Problem 1
+
+### Theory A
+
+```{r}
+# graph for if gas stations charge more if no direct competition is in sight
+ggplot(gasprices, aes(x = Price, y = Competitors)) +
+  geom_boxplot(fill = "#21908CFF", color = "black") +
+  scale_x_continuous(labels = label_dollar()) +
+  labs(
+    title = "Gas Station Prices if a Competitor is in Sight",
+    x = "Price",
+    y = "Competitor"
+  )
+
+# make table
+comp_price <- gasprices |>
+  group_by(Competitors = ifelse(Competitors == "Y", "Y", "N")) |>
+  summarize(comp_price = round(median(Price), digits = 2)) 
+
+print(comp_price)
+```
+
+Theory A states that gas stations charge more if they lack direct competition in sight. According to the data, the median price if there is no competitor in sight was \$1.89, whereas if there was a competitor in sight, the median price was \$1.85. Furthermore, the third quartile of gas prices when there is no competitor in the area is much higher compared to if there is a competitor. Although the difference is only 4 cents by median, the theory is supported by the data.
+
+### Theory B
+
+```{r}
+# graph for if the richer the area, the higher the gas prices
+ggplot(gasprices, aes(x = Price, y = Income)) +
+  geom_point(color = "#21908CFF") +
+  geom_smooth(aes(x = Price, y = Income), color = "#FDE725FF") +
+  scale_x_continuous(labels = label_dollar()) +
+  scale_y_continuous(labels = label_dollar()) +
+  labs(
+    title = "Gas Station Prices v. Income of Area",
+    x = "Price",
+    y = "Income"
+  )
+```
+
+Theory B states that the richer the area, the higher the gas prices. According to the scatterplot, there is a mostly positive correlation between the income of the area and the gas prices. The graph shows a slightly negative correlation until the price hits \$1.80, and shows a positive correlation for all gas prices higher than \$1.80. Therefore, this theory is supported by the data.
+
+### Theory C
+
+```{r}
+# graph for if they charge more at a stoplight
+ggplot(gasprices, aes(x = Price, y = Stoplight)) +
+  geom_boxplot(fill = "#21908CFF", color = "black") +
+  scale_x_continuous(labels = label_dollar()) +
+  labs(
+    title = "Gas Station Prices if by a Stoplight",
+    x = "Price",
+    y = "Stoplight"
+  )
+
+# table
+stoplight_price <- gasprices |>
+  group_by(Stoplight = ifelse(Stoplight == "Y", "Y", "N")) |>
+  summarize(stoplight_price = round(median(Price), digits = 2)) 
+
+print(stoplight_price)
+```
+
+Theory C states that gas stations at stoplights charge more. The median gas price for stations not at a stoplight was \$1.84, while the price for stations at a stoplight was \$1.87. However, both the third quartile and maximum value of gas prices for stations not at a stoplight was higher than for the ones that are. Therefore, this theory is not necessarily supported by the data.
+
+### Theory D
+
+```{r}
+# if they charge more with direct highwat access
+ggplot(gasprices, aes(x = Price, y = Highway)) +
+  geom_boxplot(fill = "#21908CFF", color = "black") +
+  scale_x_continuous(labels = label_dollar()) +
+  labs(
+    title = "Gas Station Prices based on Highway Access",
+    x = "Price",
+    y = "Highway Access"
+  )
+
+# table
+highway_price <- gasprices |>
+  group_by(Highway = ifelse(Highway == "Y", "Y", "N")) |>
+  summarize(highway_price = round(median(Price), digits = 2)) 
+
+print(highway_price)
+```
+
+Theory D states that highways with direct highway access charge more. The median gas price for stations with direct highway access was \$1.89, while the price for those without direct highway access was \$1.84. Furthermore, the first and third quartiles for stations with direct highway access were much higher than for stations without. Therefore, this theory is supported by the data.
+
+### Theory E
+
+```{r}
+# if shell charges more than other brands
+
+# group data by shell v. not
+avg_prices <- gasprices |>
+  group_by(Brand = ifelse(Brand == "Shell", "Shell", "Other brands")) |>
+  summarize(average_price = round(mean(Price), digits = 2)) 
+
+avg_prices_all <- gasprices |>
+  group_by(Brand) |>
+  summarize(average_price = round(mean(Price), digits = 2)) 
+
+# make graph
+ggplot(avg_prices, aes(x = Brand, y = average_price, fill = Brand)) +
+  geom_col() +
+  scale_fill_manual(values = viridis(2)) +
+  geom_text(aes(label = scales::dollar(average_price)), vjust = -0.5, size = 4) + 
+  scale_y_continuous(labels = label_dollar()) +
+  labs(
+    title = "If Shell Charges More for Gas than Other Brands",
+    x = "Brand",
+    y = "Average Gas Price"
+  )
+
+ggplot(avg_prices_all, aes(x = Brand, y = average_price, fill = Brand)) +
+  geom_col() +
+  scale_fill_manual(values = viridis(4)) + 
+  geom_text(aes(label = scales::dollar(average_price)), vjust = -0.5, size = 4) + 
+  scale_y_continuous(labels = label_dollar()) +
+  labs(
+    title = "If Shell Charges More for Gas than Other Brands",
+    x = "Brand",
+    y = "Average Gas Price"
+  )
+
+print(avg_prices)
+print(avg_prices_all)
+```
+
+Theory E states that Shell charges more for gas than all other non-Shell brands. The average price of gas for Shell was \$1.88, while all other brands had an average of \$1.86. However, when compared to each brand in the dataset, Chevron-Texaco also had an average price of \$1.88 for gas. Therefore, this theory is not supported by the data.
+
+## Problem 2
+
+### Part A
+
+```{r}
+# filter dataset
+sclass_subset <- sclass |>
+  filter(year == 2011 & trim == "63 AMG")
+
+# mileage
+sclass_mileage <- sclass_subset$mileage
+
+# define # of bootstrap samples
+n_bootstrap_sclass <- 10000
+
+# perform bootstrap
+set.seed(123)
+bootstrap_sclass_means <- replicate(n_bootstrap_sclass, {
+  sample_mileage <- sample(sclass_mileage, size = length(sclass_mileage), replace = TRUE)
+  mean(sample_mileage)
+})
+
+# confidence interval
+sclass_ci_lower <- quantile(bootstrap_sclass_means, 0.025)
+sclass_ci_upper <- quantile(bootstrap_sclass_means, 0.975)
+
+# print confidence interval
+cat("95% Bootstrap Confidence Interval for Average Mileage:\n")
+cat("Lower Bound:", sclass_ci_lower, "\n")
+cat("Upper Bound:", sclass_ci_upper, "\n")
+
+# create histogram
+sclass_df <- data.frame(means = bootstrap_sclass_means)
+ggplot(sclass_df) + 
+  geom_histogram(aes(x=bootstrap_sclass_means), fill = "#75D054FF", color = "black") +
+   geom_vline(xintercept = sclass_ci_lower, linetype = "dashed", color = "#440154FF", size = 1) +  # Lower CI
+  geom_vline(xintercept = sclass_ci_upper, linetype = "dashed", color = "#440154FF", size = 1) +  # Upper CI
+   labs(title = "Bootstrap Distribution of Mean Mileage",
+       x = "Bootstrapped Mean Mileage",
+       y = "Density")
+
+```
+
+A bootstrapped confidence interval for the average mileage of 2011 S-Class 63 AMGs hitting the used-car market was computed. The lower bound of the 95% confidence interval is 26,322.09. The upper bound is 31,862.66.
+
+### Part B
+
+```{r}
+# filter dataset
+black_subset <- sclass |>
+  filter(year == 2014 & trim == "550") |>
+  mutate(isBlack = color == "Black")
+
+# make isBlack numeric
+black_cars <- as.numeric(black_subset$isBlack)
+
+# set # bootstrap samples
+n_bootstrap_black <- 10000
+
+# perform bootstrap
+set.seed(456)
+bootstrap_black_props <- replicate(n_bootstrap_black, {
+  sample_black <- sample(black_cars, size = length(black_cars), replace = TRUE)
+  mean(sample_black)  
+})
+
+# confidence interval
+black_ci_lower <- quantile(bootstrap_black_props, 0.025)  # 2.5th percentile
+black_ci_upper <- quantile(bootstrap_black_props, 0.975)  # 97.5th percentile
+
+# print confidence interval
+cat("95% Bootstrap Confidence Interval for Proportion of Black Cars:\n")
+cat("Lower Bound:", black_ci_lower, "\n")
+cat("Upper Bound:", black_ci_upper, "\n")
+
+# create histogram
+black_df <- data.frame(means = bootstrap_black_props)
+ggplot(black_df) + 
+  geom_histogram(aes(x=bootstrap_black_props), fill = "#75D054FF", color = "black") +
+   geom_vline(xintercept = black_ci_lower, linetype = "dashed", color = "#440154FF", size = 1) +  # Lower CI
+  geom_vline(xintercept = black_ci_upper, linetype = "dashed", color = "#440154FF", size = 1) +  # Upper CI
+   labs(title = "Bootstrap Distribution of Black Cars",
+       x = "Bootstrapped Black Car Proportions",
+       y = "Density")
+```
+
+A bootstrapped confidence interval for the proportion of all 2014 S-Class 550s that were painted black was computed. The lower bound of the 95% confidence interval is 0.417, or 41.7%. The upper bound is 0.452, or 45.2%.
+
+## Problem 3
+
+### Part A
+
+```{r}
+# filter data
+ed_earl_nbc <- nbc |>
+  filter(Show == "Living with Ed" | Show == "My Name is Earl")
+
+# separate happy scores by show
+ed_happy <- ed_earl_nbc |>
+  filter(Show == "Living with Ed") |>
+  pull(Q1_Happy)
+
+earl_happy <- ed_earl_nbc |>
+  filter(Show == "My Name is Earl") |>
+  pull(Q1_Happy)
+
+# compute mean difference
+ed_earl_mean_diff <- mean(ed_happy, na.rm = TRUE) - mean(earl_happy, na.rm = TRUE)
+
+# bootstrap samples
+set.seed(111)  
+ed_earl_bootstrap <- 10000  
+
+ed_earl_diffs <- replicate(ed_earl_bootstrap, {
+  ed_sample <- sample(ed_happy, size = length(ed_happy), replace = TRUE)
+  earl_sample <- sample(earl_happy, size = length(earl_happy), replace = TRUE)
+  mean(ed_sample) - mean(earl_sample)  
+})
+
+# confidence interval
+ed_earl_ci_lower <- quantile(ed_earl_diffs, 0.025)
+ed_earl_ci_upper <- quantile(ed_earl_diffs, 0.975)
+
+# show CI
+cat("Living with Ed mean happiness rating:", mean(ed_happy), "\n")
+cat("My Name is Earl mean happiness rating:", mean(earl_happy), "\n")
+cat("Observed Mean Difference (Ed - Earl):", ed_earl_mean_diff, "\n")
+cat("95% Bootstrap Confidence Interval for Mean Difference:\n")
+cat("Lower Bound:", ed_earl_ci_lower, "\n")
+cat("Upper Bound:", ed_earl_ci_upper, "\n")
+
+# graph
+ed_earl_df <- data.frame(differences = ed_earl_diffs)
+
+# Create a histogram with a density curve
+ggplot(ed_earl_df, aes(x = differences)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "#24868EFF", color = "black") +
+  geom_vline(xintercept = ed_earl_ci_lower, linetype = "dashed", color = "#440154FF", size = 1) +  
+  geom_vline(xintercept = ed_earl_ci_upper, linetype = "dashed", color = "#440154FF", size = 1) +
+  geom_vline(xintercept = ed_earl_mean_diff, linetype = "solid", color = "#FDE725FF", size = 1) +  
+  labs(title = "Bootstrap Distribution of Mean Difference in Happiness Scores",
+       x = "Mean Difference (Living with Ed - My Name is Earl)",
+       y = "Density")
+
+```
+
+The question I am trying to answer is whether the show "Living with Ed" or "My Name is Earl" produces higher mean happiness scores for viewers. I took the approach of computing the mean happiness rating for each show, then subtracting the ratings to find the difference. I then computed a 95% confidence interval for my findings. I found that "Living with Ed" received a mean happiness rating of 3.927, while "My Name is Earl" received a 3.778. This means that the show "Living with Ed" had a higher score by 0.149. The lower bound of my confidence interval is -0.103, while the upper bound is 0.393. Therefore, I found that the show "Living with Ed" made viewers slightly happier on average due to receiving slightly higher average happiness ratings.
+
+### Part B
+
+```{r}
+# filter data
+tbl_tala_nbc <- nbc |>
+  filter(Show == "The Biggest Loser" | Show == "The Apprentice: Los Angeles")
+
+# separate annoyed scores by show
+tbl_annoyed <- tbl_tala_nbc |>
+  filter(Show == "The Biggest Loser") |>
+  pull(Q1_Annoyed)
+
+tala_annoyed <- tbl_tala_nbc |>
+  filter(Show == "The Apprentice: Los Angeles") |>
+  pull(Q1_Annoyed)
+
+# compute mean difference
+tbl_tala_mean_diff <- mean(tbl_annoyed, na.rm = TRUE) - mean(tala_annoyed, na.rm = TRUE)
+
+# bootstrap samples
+
+tbl_tala_bootstrap <- 10000  
+
+tbl_tala_diffs <- replicate(tbl_tala_bootstrap, {
+  tbl_sample <- sample(tbl_annoyed, size = length(tbl_annoyed), replace = TRUE)
+  tala_sample <- sample(tala_annoyed, size = length(tala_annoyed), replace = TRUE)
+  mean(tbl_sample) - mean(tala_sample)  
+})
+
+# confidence interval
+tbl_tala_ci_lower <- quantile(tbl_tala_diffs, 0.025)
+tbl_tala_ci_upper <- quantile(tbl_tala_diffs, 0.975)
+
+# show CI
+cat("The Biggest Loser mean annoyed rating:", mean(tbl_annoyed), "\n")
+cat("The Apprentice: Los Angeles mean annoyed rating:", mean(tala_annoyed), "\n")
+cat("Observed Mean Difference (TBL - TALA):", tbl_tala_mean_diff, "\n")
+cat("95% Bootstrap Confidence Interval for Mean Difference:\n")
+cat("Lower Bound:", tbl_tala_ci_lower, "\n")
+cat("Upper Bound:", tbl_tala_ci_upper, "\n")
+
+# graph
+tbl_tala_df <- data.frame(differences = tbl_tala_diffs)
+
+# Create a histogram with a density curve
+ggplot(tbl_tala_df, aes(x = differences)) +
+  geom_histogram(aes(y = ..density..), bins = 30, fill = "#24868EFF", color = "black") +
+  geom_vline(xintercept = tbl_tala_ci_lower, linetype = "dashed", color = "#440154FF", size = 1) +  
+  geom_vline(xintercept = tbl_tala_ci_upper, linetype = "dashed", color = "#440154FF", size = 1) +
+  geom_vline(xintercept = tbl_tala_mean_diff, linetype = "solid", color = "#FDE725FF", size = 1) +  
+  labs(title = "Bootstrap Distribution of Mean Difference in Annoyed Scores",
+       x = "Mean Difference (The Biggest Loser - The Apprentice: Los Angeles)",
+       y = "Density")
+```
+
+The question I am trying to answer is whether the show "The Biggest Loser" or "The Apprentice: Los Angeles" produces higher mean annoyed responses for viewers. I took the approach of computing the mean annoyed response for each show, then subtracting the scores to find the difference. I then computed a 95% confidence interval for my findings. I found that "The Biggest Loser" received a mean annoyed response of 2.036, while "The Apprentice: Los Angeles" received a 2.307. This means that the show "The Biggest Loser" had a lower score by -0.271. The lower bound of my confidence interval is -0.527, while the upper bound is -0.018. Therefore, I found that the show "The Biggest Loser" made viewers less annoyed than "The Apprentice: Los Angeles" due to receiving a lower average annoyed response.
+
+### Part C
+
+```{r}
+# filter data
+dwts_nbc <- nbc |>
+  filter(Show == "Dancing with the Stars") |>
+  mutate(is_confused = Q2_Confusing >= 4)
+
+# sample proportion
+p_hat <- mean(dwts_nbc$is_confused, na.rm = TRUE) # sample prop
+n <- sum(dwts_nbc$is_confused) # number valid responses
+
+# standard error for proportion
+se <- sqrt((p_hat * (1 - p_hat)) / n)
+
+# confidence interval
+z_star <- qnorm(0.975) # z score for 95% CI
+dwts_ci_lower <- p_hat - z_star * se
+dwts_ci_upper <- p_hat + z_star * se
+
+# results
+cat("Estimated Proportion Confused:", round(p_hat, 4), "\n")
+cat("95% Confidence Interval for Proportion of Confused Viewers:\n")
+cat("Lower Bound:", round(dwts_ci_lower, 4), "\n")
+cat("Upper Bound:", round(dwts_ci_upper, 4), "\n")
+
+# graph
+dwts_ci_df <- data.frame(
+  estimate = p_hat,
+  lower = dwts_ci_lower,
+  upper = dwts_ci_upper
+)
+
+ggplot(dwts_ci_df, aes(x = "Dancing with the Stars", y = estimate)) +
+  geom_point(size = 4, color = "#21908CFF") +
+  geom_errorbar(aes(ymin = lower, ymax = upper), width = 0.2, color = "#440154FF") +
+  labs(
+    title = "95% Confidence Interval for Proportion Confused by Dancing with the Stars",
+    x = "Show",
+    y = "Proportion Confused"
+  )
+
+```
+
+The question I am trying to answer is what proportion of American TV watchers would be expected to give a response of 4 or greater to whether "Dancing With the Stars" is confusing. I took the approach of mutating a new variable for reported confused scores of 4 or higher and computing the proportion of this variable to those "not confused". I then computed a 95% confidence interval for my findings. I found that the proportion of confused viewers is 0.077, or 7.7%. The lower bound of my confidence interval is -0.063, or -6.3%, while my upper bound is 0.217, or 21.7%. Therefore, I found that "Dancing With the Stars" is not a confusing show for the large majority of people, due to the low proportion of responses of 4 or higher.
+
+## Problem 4
+
+```{r}
+# compute revenue ratio
+ebay <- ebay |>
+  mutate(revenue_ratio = rev_after / rev_before)
+
+# split treatment and control groups
+treatment_group <- ebay |>
+  filter(adwords_pause == 1) |>
+  pull(revenue_ratio)
+
+control_group <- ebay |>
+  filter(adwords_pause == 0) |>
+  pull(revenue_ratio)
+
+# compute observed difference in means
+ebay_obs_diff <- mean(treatment_group) - mean(control_group)
+
+# bootstrap
+set.seed(777)  
+n_iterations <- 10000
+ebay_bootstrap_diffs <- replicate(n_iterations, {
+  ebay_boot_treatment <- sample(treatment_group, size = length(treatment_group), replace = TRUE)
+  ebay_boot_control <- sample(control_group, size = length(control_group), replace = TRUE)
+  mean(ebay_boot_treatment) - mean(ebay_boot_control)
+})
+
+# 95% CI
+ebay_ci_lower <- quantile(ebay_bootstrap_diffs, 0.025)
+ebay_ci_upper <- quantile(ebay_bootstrap_diffs, 0.975)
+
+# print results
+cat("Mean Revenue Ratio for Treatment Group:", mean(treatment_group), "\n")
+cat("Mean Revenue Ratio for Control Group:", mean(control_group), "\n")
+cat("Observed Difference in Mean Revenue Ratio:", ebay_obs_diff, "\n")
+cat("95% Confidence Interval: [", ebay_ci_lower, ",", ebay_ci_upper, "]\n")
+
+# create dataframe
+ebay_df <- data.frame(ebay_bootstrap_diffs = ebay_bootstrap_diffs)
+
+# plot bootstrap distribution
+ggplot(ebay_df, aes(x = ebay_bootstrap_diffs)) +
+  geom_histogram(binwidth = 0.001, color = "#75D054FF", fill = "#75D054FF", alpha = 0.7) +
+  geom_vline(xintercept = ebay_ci_lower, color = "#440154FF", linetype = "dashed", size = 1) +
+  geom_vline(xintercept = ebay_ci_upper, color = "#440154FF", linetype = "dashed", size = 1) +  
+  labs(
+    title = "Bootstrap Distribution of Revenue Ratio Differences",
+    x = "Difference in Revenue Ratio (Treatment - Control)",
+    y = "Frequency"
+  )
+```
+
+I am trying to answer the question of whether the revenue ratio is the same in the treatment and control designated market areas (DMAs), or if the data favors the idea that paid search advertising on Google creates extra revenue for EBay. For the treatment group, advertising on Google AdWords for the DMA was paused for a month, while advertising on Google AdWords stayed the same in the control group. I took the approach of mutating a new variable in the data for the revenue ratio, and then splitting the data into the treatment and control group. I then computed the mean difference in revenue ratio for the two groups, and computed a 95% confidence interval for my findings. I found that the mean revenue ratio for the treatment group was 0.897, while the mean revenue ratio for the control group was 0.949. The observed mean difference in the groups was -0.052. The lower bound of my 95% confidence interval is -0.091, while the upper bound is -0.013. Therefore, paid search advertising on Google does create extra revenue for EBay due to the revenue ratio being higher in the control group.
